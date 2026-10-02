@@ -1,0 +1,285 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="AudioGAR bridges reconstruction and generation in latent audio models through generation-aware codec decoder adaptation. Explore the paper, evidence, method, code, and models.">
+  <meta name="theme-color" content="#f7f4ee">
+  <meta property="og:title" content="AudioGAR: Bridging Reconstruction and Generation in Latent Audio Generative Models">
+  <meta property="og:description" content="Generation-aware decoder adaptation improves audio and music generation with 1.5% of AudioX's training audio and 0.26% of its training cost.">
+  <meta property="og:type" content="website">
+  <title>AudioGAR: Bridging Reconstruction and Generation in Latent Audio Generative Models</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="script.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#idea">Skip to content</a>
+  <header class="topbar">
+    <a class="wordmark" href="#top" aria-label="AudioGAR home">Audio<span class="wordmark-accent">GAR</span></a>
+    <nav aria-label="Primary navigation">
+      <a href="#idea">Idea</a>
+      <a href="#evidence">Evidence</a>
+      <a href="#method">Method</a>
+      <a href="#results">Results</a>
+      <a href="#analysis">Analysis</a>
+      <a href="#citation">Citation</a>
+    </nav>
+  </header>
+
+  <main id="top">
+    <section class="hero shell" aria-labelledby="paper-title">
+      <h1 id="paper-title"><span class="title-sky">AudioGAR:</span> Bridging Reconstruction and Generation</h1>
+      <p class="dek">in Latent Audio Generative Models</p>
+      <p class="authors">Xianghong Fang<sup>1,*</sup><span>·</span> Geeyang Tay<sup>1,*</sup><span>·</span> Wentao Ma<sup>1</sup><span>·</span> Tim G. J. Rudner<sup>1,2</sup><span>·</span> Dehan Kong<sup>1</sup></p>
+      <p class="affiliations"><span><sup>1</sup>University of Toronto</span><span><sup>2</sup>Vijil</span><span><sup>*</sup>Equal contribution</span></p>
+      <div class="actions">
+        <a class="button dark" href="assets/AudioGAR.pdf" target="_blank" rel="noopener noreferrer">Read paper <span aria-hidden="true">↗</span></a>
+        <a class="button" href="https://github.com/ml-maple-monk/Audio-GAR" target="_blank" rel="noopener noreferrer">Code <span aria-hidden="true">↗</span></a>
+        <a class="button" href="https://huggingface.co/overfittingexpert/Audio-GAR" target="_blank" rel="noopener noreferrer">Models <span aria-hidden="true">↗</span></a>
+        <a class="button" href="#citation">BibTeX <span aria-hidden="true">↓</span></a>
+      </div>
+      <div class="thesis">Can we obtain generation-relevant latents that remain paired with source audio for decoder fine-tuning?</div>
+      <p class="answer">In our paper, we show that AudioGAR constructs intermediate latents between reconstruction and generation, retaining source correspondence at lower noise levels to support generation-aware codec decoder adaptation.</p>
+    </section>
+
+    <div class="numbers shell" aria-label="AudioGAR on AudioX at a glance">
+      <div><span class="stat-value">31.3%</span><span class="stat-label">lower FAD on MusicCaps<br>1.60 → 1.10</span></div>
+      <div><span class="stat-value">16.8%</span><span class="stat-label">lower FAD on AudioCaps<br>1.61 → 1.34</span></div>
+      <div><span class="stat-value">1.5%</span><span class="stat-label">of original training audio<br>508.3 audio hours</span></div>
+      <div><span class="stat-value">0.26%</span><span class="stat-label">of original training cost<br>10.3 H100-equivalent hours</span></div>
+    </div>
+
+    <section id="idea" class="section motivation">
+      <div class="shell split">
+        <div class="section-label">01 / Motivation</div>
+        <div class="prose">
+          <h2>One decoder.<br>Two latent distributions.</h2>
+          <p>Latent audio models learn in two stages. A codec learns to reconstruct audio, then a generative model learns to produce latents in the codec’s space. The decoder trains on encoder-induced latents, but receives generator-produced latents at inference.</p>
+          <p>For a source waveform <i>x</i>, reconstruction decodes <i>z</i><sub>e</sub> = E<sub>θ</sub>(<i>x</i>) ∼ P<sub>e</sub>. Generation decodes <i>z</i><sub>g</sub> ∼ P<sub>g</sub>, produced from noise and a text caption. When P<sub>e</sub> ≠ P<sub>g</sub>, the decoder faces a train-generation mismatch.</p>
+          <p>Strong reconstruction quality therefore need not transfer to generated audio. AudioGAR adapts the decoder to latents that incorporate the generative process while preserving a source waveform for supervision.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="evidence" class="section shell">
+      <div class="section-label">02 / Empirical evidence</div>
+      <div class="section-head">
+        <h2>The mismatch<br>is measurable</h2>
+        <p>We construct encoder and generator latents from matched audio-caption examples in AudioX. Linear Discriminant Analysis (LDA) finds a direction that separates the two collections, both at the decoder input and within its feature spaces.</p>
+      </div>
+      <figure class="paper-figure">
+        <a href="assets/lda-MAF-main.pdf" target="_blank" rel="noopener noreferrer" aria-label="Open the LDA analysis as a PDF"><img src="assets/lda-MAF-main.png" width="7200" height="4800" alt="LDA density plots for AudioX on AudioCaps, MusicCaps, and VGGSound-Omni, showing separation of encoder and generated latents at the input and three decoder stages." loading="lazy"></a>
+        <figcaption>Figure 1. Empirical evidence of distribution mismatch (paper §2.2). Rows show AudioCaps, MusicCaps, and VGGSound-Omni; columns show latent space, Conv In, Block 2, and Block 4. Curves are Gaussian-smoothed, normalized densities of one-dimensional LDA scores for encoder latents <i>z</i><sub>e</sub> and generated latents <i>z</i><sub>g</sub>; shading marks overlap. AUC is the area under the receiver operating characteristic curve, and <i>d</i> reports standardized separation.</figcaption>
+      </figure>
+      <p class="figure-readout">Latent-space AUC reaches 0.962 on AudioCaps, 0.862 on MusicCaps, and 0.845 on VGGSound-Omni. Separation persists after the latents enter the decoder, including Conv In, Block 2, and Block 4.</p>
+
+      <div class="subsection">
+        <h3>Reconstruction quality leaves a generation gap</h3>
+        <p>We compare reconstructed and generated audio across 29 model-dataset combinations. FD uses PANNs embeddings; FAD uses VGGish embeddings. The prefixes <i>r</i> and <i>g</i> denote reconstruction and generation. Lower values indicate closer agreement with the reference audio distribution.</p>
+      </div>
+      <div class="table-block">
+        <div class="table-heading"><span>Table 1</span><h3>Reconstruction-generation performance gap</h3></div>
+        <div class="table-tools" hidden id="gap-controls">
+          <label for="dataset-filter">Dataset</label>
+          <select id="dataset-filter"><option value="all">All datasets</option><option value="AudioCaps">AudioCaps</option><option value="MusicCaps">MusicCaps</option><option value="VGGSound-Omni">VGGSound-Omni</option></select>
+          <span id="gap-count" role="status">29 model-dataset comparisons</span>
+        </div>
+        <div class="table-scroll" role="region" aria-label="Reconstruction-generation metrics, scroll horizontally on small screens" tabindex="0">
+          <table id="gap-table" class="gap-table">
+            <caption class="visually-hidden">Reconstruction-generation performance gap across AudioCaps, MusicCaps, and VGGSound-Omni. Lower is better for every metric.</caption>
+            <colgroup><col class="dataset-col"><col class="model-col"><col class="fd-col"><col class="fd-col"><col class="fad-col"><col class="fad-col"></colgroup>
+            <thead><tr><th scope="col">Dataset</th><th scope="col">Model</th><th scope="col">rFD ↓</th><th scope="col">gFD ↓</th><th scope="col">rFAD ↓</th><th scope="col">gFAD ↓</th></tr></thead>
+            <tbody data-dataset="AudioCaps">
+              <tr><th scope="rowgroup" rowspan="10">AudioCaps</th><th scope="row"><a href="https://huggingface.co/haoheliu/audioldm2-full" target="_blank" rel="noopener noreferrer">AudioLDM-2-Base</a></th><td>3.19</td><td>11.54</td><td>1.31</td><td>2.04</td></tr>
+              <tr><th scope="row"><a href="https://huggingface.co/haoheliu/audioldm2-full-large-1150k" target="_blank" rel="noopener noreferrer">AudioLDM-2-Large</a></th><td>3.20</td><td>11.53</td><td>1.31</td><td>1.86</td></tr>
+              <tr><th scope="row"><a href="https://huggingface.co/haoheliu/AudioLDM-S-Full" target="_blank" rel="noopener noreferrer">AudioLDM-S-Full</a></th><td>3.05</td><td>21.85</td><td>1.27</td><td>4.79</td></tr>
+              <tr><th scope="row"><a href="https://huggingface.co/HKUSTAudio/AudioX-MAF" target="_blank" rel="noopener noreferrer">AudioX</a></th><td>7.53</td><td>11.83</td><td>3.49</td><td>1.61</td></tr>
+              <tr><th scope="row"><a href="https://huggingface.co/stabilityai/stable-audio-open-1.0" target="_blank" rel="noopener noreferrer">Stable Audio Open</a></th><td>7.53</td><td>30.36</td><td>3.49</td><td>3.41</td></tr>
+              <tr><th scope="row"><a href="https://huggingface.co/declare-lab/tango" target="_blank" rel="noopener noreferrer">Tango</a></th><td>2.97</td><td>14.47</td><td>1.14</td><td>1.52</td></tr>
+              <tr><th scope="row"><a href="https://huggingface.co/declare-lab/tango-full" target="_blank" rel="noopener noreferrer">Tango Full</a></th><td>2.97</td><td>22.23</td><td>1.14</td><td>4.10</td></tr>
+              <tr><th scope="row"><a href="https://huggingface.co/declare-lab/tango-full-ft-audio-music-caps" target="_blank" rel="noopener noreferrer">Tango Full (FT AudioCaps + MusicCaps)</a></th><td>2.97</td><td>9.77</td><td>1.14</td><td>2.59</td></tr>
+              <tr><th scope="row"><a href="https://huggingface.co/declare-lab/tango-full-ft-audiocaps" target="_blank" rel="noopener noreferrer">Tango Full (FT AudioCaps)</a></th><td>2.97</td><td>10.42</td><td>1.14</td><td>2.39</td></tr>
+              <tr><th scope="row"><a href="https://huggingface.co/declare-lab/tango-af-ac-ft-ac" target="_blank" rel="noopener noreferrer">Tango (AF-AC, FT AudioCaps)</a></th><td>2.97</td><td>12.08</td><td>1.14</td><td>2.55</td></tr>
+            </tbody>
+            <tbody data-dataset="MusicCaps">
+              <tr><th scope="rowgroup" rowspan="8">MusicCaps</th><th scope="row"><a href="https://huggingface.co/haoheliu/audioldm2-full-large-1150k" target="_blank" rel="noopener noreferrer">AudioLDM-2-Large</a></th><td>2.20</td><td>18.84</td><td>0.66</td><td>2.51</td></tr>
+              <tr><th scope="row"><a href="https://huggingface.co/haoheliu/audioldm2-full" target="_blank" rel="noopener noreferrer">AudioLDM-2-Base</a></th><td>2.20</td><td>21.71</td><td>0.66</td><td>3.82</td></tr>
+              <tr><th scope="row"><a href="https://huggingface.co/HKUSTAudio/AudioX-MAF" target="_blank" rel="noopener noreferrer">AudioX</a></th><td>4.31</td><td>9.56</td><td>0.95</td><td>1.60</td></tr>
+              <tr><th scope="row"><a href="https://huggingface.co/stabilityai/stable-audio-open-1.0" target="_blank" rel="noopener noreferrer">Stable Audio Open</a></th><td>4.31</td><td>37.72</td><td>0.95</td><td>3.42</td></tr>
+              <tr><th scope="row"><a href="https://huggingface.co/declare-lab/tango" target="_blank" rel="noopener noreferrer">Tango</a></th><td>2.18</td><td>46.80</td><td>0.56</td><td>5.64</td></tr>
+              <tr><th scope="row"><a href="https://huggingface.co/declare-lab/tango-full" target="_blank" rel="noopener noreferrer">Tango Full</a></th><td>2.18</td><td>35.67</td><td>0.56</td><td>5.78</td></tr>
+              <tr><th scope="row"><a href="https://huggingface.co/declare-lab/tango-music-af-ft-mc" target="_blank" rel="noopener noreferrer">TangoMusic</a></th><td>2.04</td><td>15.20</td><td>0.42</td><td>1.85</td></tr>
+              <tr><th scope="row"><a href="https://huggingface.co/declare-lab/tango-full-ft-audio-music-caps" target="_blank" rel="noopener noreferrer">Tango Full (FT AudioCaps + MusicCaps)</a></th><td>2.18</td><td>20.43</td><td>0.56</td><td>3.61</td></tr>
+            </tbody>
+            <tbody data-dataset="VGGSound-Omni">
+              <tr><th scope="rowgroup" rowspan="11">VGGSound-Omni</th><th scope="row"><a href="https://huggingface.co/haoheliu/audioldm2-full" target="_blank" rel="noopener noreferrer">AudioLDM-2-Base</a></th><td>1.64</td><td>10.03</td><td>0.49</td><td>1.72</td></tr>
+              <tr><th scope="row"><a href="https://huggingface.co/haoheliu/audioldm2-full-large-1150k" target="_blank" rel="noopener noreferrer">AudioLDM-2-Large</a></th><td>1.64</td><td>9.93</td><td>0.49</td><td>1.49</td></tr>
+              <tr><th scope="row"><a href="https://huggingface.co/haoheliu/AudioLDM-S-Full" target="_blank" rel="noopener noreferrer">AudioLDM-S-Full</a></th><td>1.63</td><td>18.78</td><td>0.50</td><td>3.44</td></tr>
+              <tr><th scope="row"><a href="https://huggingface.co/HKUSTAudio/AudioX-MAF" target="_blank" rel="noopener noreferrer">AudioX</a></th><td>3.66</td><td>9.67</td><td>1.91</td><td>1.74</td></tr>
+              <tr><th scope="row"><a href="https://huggingface.co/stabilityai/stable-audio-open-1.0" target="_blank" rel="noopener noreferrer">Stable Audio Open</a></th><td>3.66</td><td>26.07</td><td>1.91</td><td>2.68</td></tr>
+              <tr><th scope="row"><a href="https://huggingface.co/declare-lab/tango" target="_blank" rel="noopener noreferrer">Tango</a></th><td>1.62</td><td>24.03</td><td>0.50</td><td>2.88</td></tr>
+              <tr><th scope="row"><a href="https://huggingface.co/declare-lab/tango-full" target="_blank" rel="noopener noreferrer">Tango Full</a></th><td>1.62</td><td>19.01</td><td>0.50</td><td>3.69</td></tr>
+              <tr><th scope="row"><a href="https://huggingface.co/declare-lab/tango-music-af-ft-mc" target="_blank" rel="noopener noreferrer">TangoMusic</a></th><td>1.62</td><td>13.43</td><td>0.50</td><td>2.36</td></tr>
+              <tr><th scope="row"><a href="https://huggingface.co/declare-lab/tango-af-ac-ft-ac" target="_blank" rel="noopener noreferrer">Tango (AF-AC, FT AudioCaps)</a></th><td>1.62</td><td>11.72</td><td>0.50</td><td>1.46</td></tr>
+              <tr><th scope="row"><a href="https://huggingface.co/declare-lab/tango-full-ft-audio-music-caps" target="_blank" rel="noopener noreferrer">Tango Full (FT AudioCaps + MusicCaps)</a></th><td>1.62</td><td>13.26</td><td>0.50</td><td>2.28</td></tr>
+              <tr><th scope="row"><a href="https://huggingface.co/declare-lab/tango-full-ft-audiocaps" target="_blank" rel="noopener noreferrer">Tango Full (FT AudioCaps)</a></th><td>1.62</td><td>19.12</td><td>0.50</td><td>3.06</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="table-note">All 29 comparisons from the supplied table (paper Table 2). Blue columns show FD; green columns show FAD. FT denotes fine-tuning. Model names link to their checkpoints.</p>
+      </div>
+      <p class="figure-readout">rFD is lower than gFD in all 29 comparisons; rFAD is lower than gFAD in 26. For example, Tango on MusicCaps has rFD 2.18 and gFD 46.80. AudioX on AudioCaps is an FAD exception, with rFAD 3.49 and gFAD 1.61.</p>
+
+      <div class="figure-story">
+        <p class="figure-setup">The AudioCaps quantile comparison checks whether a few models drive the FD gap. It compares the empirical reconstruction and generation distributions across the evaluated models.</p>
+        <figure class="paper-figure compact-figure">
+          <img src="assets/quantile-AudioCaps.png" width="917" height="590" alt="Empirical quantile curves of reconstruction FD and generation FD on AudioCaps, separated across the full quantile range with a median gap of 8.95." loading="lazy">
+          <figcaption>Figure 2. AudioCaps quantiles of rFD and gFD (paper Figure 2). The horizontal axis is FD and the vertical axis is quantile level. The generation median exceeds the reconstruction median by 8.95.</figcaption>
+        </figure>
+        <p class="figure-readout">The curves remain separated across the full quantile range. The gap alone does not isolate the decoder’s contribution, because generation also depends on the latent generator. Combined with the LDA evidence, it motivates adapting the decoder to generation-relevant inputs.</p>
+      </div>
+    </section>
+
+    <section id="method" class="section method-section">
+      <div class="shell">
+        <div class="section-label">03 / Method</div>
+        <div class="section-head">
+          <h2>Generation-aware<br>decoder adaptation</h2>
+          <p>Fully generated latents lack a paired source waveform. AudioGAR starts from an encoded waveform, adds controlled noise, and denoises through the frozen generative model. Lower-noise outputs retain the correspondence needed for paired supervision.</p>
+        </div>
+        <p class="figure-setup">We first construct intermediate latents, then use them as decoder inputs while supervising against the original audio. The codec encoder and latent generator remain frozen.</p>
+        <figure class="paper-figure pipeline-figure">
+          <a href="assets/AudioGAR_pipeline.pdf" target="_blank" rel="noopener noreferrer" aria-label="Open the AudioGAR pipeline as a PDF"><img src="assets/AudioGAR_pipeline.png" width="2599" height="1418" alt="AudioGAR encodes a source waveform, perturbs its latent with Gaussian noise, denoises with the frozen generative model, and decodes the intermediate latent back to audio." loading="lazy"></a>
+          <figcaption>Figure 3. AudioGAR latent construction (paper §3.1). E<sub>θ</sub> maps source audio <i>x</i> to <i>z</i><sub>e</sub>. Gaussian noise ε ∼ N(0, I) produces <i>z</i><sub>noisy</sub><sup>t</sup> = <i>a</i><sub>t</sub><i>z</i><sub>e</sub> + <i>b</i><sub>t</sub>ε. The frozen generator denoises this input, conditioned on the source caption, to obtain <i>z</i><sub>g</sub><sup>t</sup> ∼ P<sub>g</sub><sup>t</sup>. The decoder reconstructs the waveform from this intermediate latent.</figcaption>
+        </figure>
+        <p class="figure-readout">The relative noise level η<sub>t</sub> = <i>b</i><sub>t</sub> / (<i>a</i><sub>t</sub> + <i>b</i><sub>t</sub>) controls the transition. η<sub>t</sub> = 0 recovers reconstruction; η<sub>t</sub> = 1 recovers generation from pure noise. Our experiments use <i>a</i><sub>t</sub> = cos(π<i>t</i>/2) and <i>b</i><sub>t</sub> = sin(π<i>t</i>/2).</p>
+        <div class="stages">
+          <article><span>01 / Encode</span><h3>Keep the source pair</h3><p>Encode a waveform with the pretrained, frozen codec encoder.</p></article>
+          <article><span>02 / Perturb</span><h3>Choose the noise level</h3><p>Mix the encoder latent with Gaussian noise using the diffusion schedule.</p></article>
+          <article><span>03 / Denoise</span><h3>Use the generator</h3><p>Denoise with the frozen model and the caption paired with the source audio.</p></article>
+          <article><span>04 / Adapt</span><h3>Fine-tune the decoder</h3><p>Decode the AudioGAR latent and apply the original codec’s decoder-side objective.</p></article>
+        </div>
+        <div class="method-objective">
+          <p class="equation" aria-label="AudioGAR loss equals the codec loss between the source waveform and the decoded AudioGAR latent">L<sub>AudioGAR</sub> = L<sub>codec</sub>(<i>x</i>, D<sub>ϕ</sub>(<i>z</i><sub>g</sub><sup>t</sup>))</p>
+          <p>We retain the codec’s reconstruction and adversarial objectives and their loss weights. AudioX updates only the codec decoder; TangoMusic jointly updates the VAE decoder and HiFi-GAN vocoder. Both keep the encoder and latent generator frozen.</p>
+          <p><strong>AudioGAR improves generation by adapting the decoder to generation-relevant latents with paired source supervision.</strong></p>
+        </div>
+      </div>
+    </section>
+
+    <section id="trajectory" class="section dark-section">
+      <div class="shell">
+        <div class="section-label">04 / Distributional trajectory</div>
+        <div class="section-head">
+          <h2>How do latents shift<br>as noise increases?</h2>
+          <p>Latent-FD compares empirical means and covariances under a Gaussian approximation, directly in latent space. We measure the distance from each intermediate distribution P<sub>g</sub><sup>t</sup> to both the encoder endpoint P<sub>e</sub> and generator endpoint P<sub>g</sub>.</p>
+        </div>
+        <figure class="paper-figure">
+          <div class="figure-pair">
+            <div><a href="assets/latent-fd-AudioCaps.pdf" target="_blank" rel="noopener noreferrer" aria-label="Open AudioCaps Latent-FD as a PDF"><img src="assets/latent-fd-AudioCaps.png" width="3600" height="2225" alt="On AudioCaps, Latent-FD to encoder latents increases with noise while Latent-FD to generated latents decreases." loading="lazy"></a><span>(a) AudioCaps</span></div>
+            <div><img src="assets/latent-fd-MusicCaps.png" width="818" height="522" alt="On MusicCaps, intermediate distributions also move away from encoder latents and toward generated latents as noise increases." loading="lazy"><span>(b) MusicCaps</span></div>
+          </div>
+          <figcaption>Figure 4. AudioGAR bridges the two latent distributions (paper §3.2, Figure 4). Blue curves compare P<sub>g</sub><sup>t</sup> with P<sub>e</sub>; green curves compare P<sub>g</sub><sup>t</sup> with P<sub>g</sub>. The horizontal axis is noise level η<sub>t</sub>; the vertical axis is Latent-FD. Both datasets trace the same transition toward the generation endpoint.</figcaption>
+        </figure>
+        <p class="figure-readout">On both datasets, increasing noise moves AudioGAR latents farther from P<sub>e</sub> and closer to P<sub>g</sub>. Lower noise preserves source correspondence; larger noise moves closer to generation while weakening that correspondence.</p>
+      </div>
+    </section>
+
+    <section id="results" class="section shell">
+      <div class="section-label">05 / Evaluation</div>
+      <div class="section-head">
+        <h2>Better generation.<br>A small adaptation budget.</h2>
+        <p>AudioGAR improves FD and FAD on AudioX for both audio and music generation. It also transfers to TangoMusic’s decoder and vocoder pipeline. The inference pipeline uses the adapted weights with no additional inference cost.</p>
+      </div>
+      <div class="table-block">
+        <div class="table-heading"><span>Table 2</span><h3>Generation before and after AudioGAR</h3></div>
+        <div class="table-scroll" role="region" aria-label="Main generation results" tabindex="0">
+          <table class="results-table">
+            <caption class="visually-hidden">Reproduced baselines and AudioGAR results from paper Table 3.</caption>
+            <thead><tr><th scope="col">Dataset</th><th scope="col">Model</th><th scope="col">gFD ↓</th><th scope="col">gFAD ↓</th><th scope="col">KL ↓</th><th scope="col">IS ↑</th><th scope="col">PC ↑</th><th scope="col">PQ ↑</th></tr></thead>
+            <tbody>
+              <tr><th scope="rowgroup" rowspan="2">AudioCaps</th><th scope="row">AudioX</th><td>11.83</td><td>1.61</td><td>1.31</td><td>12.47</td><td>3.16</td><td>5.73</td></tr>
+              <tr class="adapted-row"><th scope="row">AudioX + AudioGAR</th><td>11.62</td><td>1.34</td><td>1.29</td><td>12.06</td><td>3.11</td><td>5.73</td></tr>
+            </tbody>
+            <tbody>
+              <tr><th scope="rowgroup" rowspan="4">MusicCaps</th><th scope="row">AudioX</th><td>9.56</td><td>1.60</td><td>1.00</td><td>3.65</td><td>4.78</td><td>6.61</td></tr>
+              <tr class="adapted-row"><th scope="row">AudioX + AudioGAR</th><td>8.33</td><td>1.10</td><td>0.99</td><td>3.59</td><td>4.75</td><td>6.56</td></tr>
+              <tr><th scope="row">TangoMusic</th><td>15.20</td><td>1.85</td><td>1.09</td><td>2.85</td><td>5.62</td><td>7.22</td></tr>
+              <tr class="adapted-row"><th scope="row">TangoMusic + AudioGAR</th><td>14.25</td><td>1.47</td><td>1.09</td><td>2.83</td><td>5.61</td><td>7.16</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="table-note">Subset of paper Table 3 using our reproduced baselines. Shading identifies AudioGAR rows. KL: Kullback-Leibler divergence; IS: Inception Score; PC: Production Complexity; PQ: Production Quality. FD and FAD measure distributional agreement; PC and PQ use Meta Audiobox Aesthetics.</p>
+      </div>
+      <p class="result-readout">On MusicCaps, AudioGAR reduces AudioX FAD by 31.3% and TangoMusic FAD by 20.5%. IS and PC decline slightly, and PQ stays unchanged or declines slightly; the main gains are in FD and FAD.</p>
+      <div class="table-block">
+        <div class="table-heading"><span>Table 3</span><h3>AudioX adaptation cost and data</h3></div>
+        <div class="table-scroll" role="region" aria-label="Training cost and data comparison" tabindex="0">
+          <table>
+            <caption class="visually-hidden">AudioGAR adaptation relative to original AudioX training, from paper Table 1.</caption>
+            <thead><tr><th scope="col">Training</th><th scope="col">H100-equivalent hours</th><th scope="col">Relative cost</th><th scope="col">Audio hours</th><th scope="col">Relative data</th></tr></thead>
+            <tbody>
+              <tr><th scope="row">Original AudioX</th><td>4,000</td><td>100%</td><td>33,052.3</td><td>100%</td></tr>
+              <tr class="adapted-row"><th scope="row">AudioGAR adaptation</th><td>10.3</td><td>0.26%</td><td>508.3</td><td>1.5%</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="table-note">Adaptation runs for 100k steps on one NVIDIA H100 80GB GPU. Cost and data percentages use original AudioX training as the denominator. The 10.3 hours are the adaptation cost, additional to pretrained AudioX.</p>
+      </div>
+    </section>
+
+    <section id="analysis" class="section analysis-section">
+      <div class="shell">
+        <div class="section-label">06 / Ablation &amp; analysis</div>
+        <div class="section-head single-column"><h2>What makes adaptation work?</h2></div>
+        <div class="subsection">
+          <h3>Does the choice of decoder latents matter?</h3>
+          <p>We keep the adaptation procedure fixed and replace encoder latents with AudioGAR latents. Fine-tuning on encoder latents already improves FD and FAD, but AudioGAR yields larger gains on both datasets.</p>
+        </div>
+        <div class="table-block">
+          <div class="table-heading"><span>Table 4</span><h3>Decoder input ablation</h3></div>
+          <div class="table-scroll" role="region" aria-label="Decoder latent ablation results" tabindex="0">
+            <table>
+              <caption class="visually-hidden">FD and FAD subset of paper Table 4, comparing pretrained AudioX with two decoder adaptation inputs.</caption>
+              <thead><tr><th scope="col">Decoder setting</th><th scope="col">AudioCaps FD ↓</th><th scope="col">AudioCaps FAD ↓</th><th scope="col">MusicCaps FD ↓</th><th scope="col">MusicCaps FAD ↓</th></tr></thead>
+              <tbody>
+                <tr><th scope="row">Pretrained AudioX</th><td>11.83</td><td>1.61</td><td>9.56</td><td>1.60</td></tr>
+                <tr><th scope="row">Adapt with encoder latents <i>z</i><sub>e</sub></th><td>11.72</td><td>1.55</td><td>8.87</td><td>1.38</td></tr>
+                <tr class="adapted-row"><th scope="row">Adapt with AudioGAR latents <i>z</i><sub>g</sub><sup>t</sup></th><td>11.62</td><td>1.34</td><td>8.33</td><td>1.10</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="table-note">FD and FAD subset of paper Table 4. All values evaluate generated audio; lower is better.</p>
+        </div>
+        <p class="figure-readout">On MusicCaps, replacing encoder latents with AudioGAR latents lowers FAD from 1.38 to 1.10. This comparison isolates the benefit of generation-aware inputs beyond decoder fine-tuning alone.</p>
+
+      </div>
+    </section>
+
+    <section class="section shell takeaways" aria-label="Takeaways">
+      <div class="section-label">07 / Takeaways</div>
+      <ol>
+        <li><span>Encoder and generator latents differ across the evaluated audio models, and strong reconstruction alone does not predict strong generation.</span></li>
+        <li><span>AudioGAR constructs intermediate latents that incorporate the generative process while retaining source correspondence at lower noise levels.</span></li>
+        <li><span>Adapting decoder components improves FD and FAD on AudioX and TangoMusic without adding inference cost.</span></li>
+        <li><span>AudioX adaptation uses 508.3 hours of audio and 10.3 H100-equivalent hours, or 1.5% of its original training audio and 0.26% of its training cost.</span></li>
+      </ol>
+    </section>
+
+    <section id="citation" class="section citation">
+      <div class="shell">
+        <div class="section-label">08 / Citation</div>
+        <div class="citation-head"><h2>Build on AudioGAR</h2><div class="resource-links"><a href="https://github.com/ml-maple-monk/Audio-GAR" target="_blank" rel="noopener noreferrer">Code ↗</a><a href="https://huggingface.co/overfittingexpert/Audio-GAR" target="_blank" rel="noopener noreferrer">Models ↗</a><a href="assets/AudioGAR.pdf" target="_blank" rel="noopener noreferrer">Paper ↗</a></div></div>
+        <pre><code id="bibtex-code">@article{fang2026audiogar,
+  title   = {AudioGAR: Bridging Reconstruction and Generation in Latent Audio Generative Models},
+  author  = {Fang, Xianghong and Tay, Geeyang and Ma, Wentao and Rudner, Tim G. J. and Kong, Dehan},
+  journal = {Arxiv},
+  year    = {2026}
+}</code></pre>
+        <div class="citation-actions"><button class="copy-button" id="copy-bibtex" type="button" hidden>Copy BibTeX</button><span id="copy-status" role="status"></span></div>
+      </div>
+    </section>
+  </main>
+  <footer><div class="shell"><span>AudioGAR · 2026</span><a href="#top">Back to top ↑</a></div></footer>
+</body>
+</html>
