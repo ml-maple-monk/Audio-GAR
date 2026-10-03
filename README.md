@@ -9,9 +9,9 @@
 [![Paper](https://img.shields.io/badge/Paper-PDF-b31b1b.svg)](docs/assets/AudioGAR.pdf)
 [![Hugging Face](https://img.shields.io/badge/Hugging%20Face-Models-ffd21e.svg)](https://huggingface.co/overfittingexpert/Audio-GAR)
 
-**[Xianghong Fang](https://sunset-clouds.github.io/)<sup>1,*</sup> &middot; Geeyang Tay<sup>1,*</sup> &middot; Wentao Ma<sup>1</sup> &middot; Tim G. J. Rudner<sup>1,2</sup> &middot; Dehan Kong<sup>1</sup>**
+**[Xianghong Fang](https://sunset-clouds.github.io/)<sup>1,⋆</sup> &middot; Geeyang Tay<sup>1,⋆</sup> &middot; Wentao Ma<sup>1</sup> &middot; Tim G. J. Rudner<sup>1,2</sup> &middot; Dehan Kong<sup>1</sup>**
 
-<sup>1</sup>University of Toronto &nbsp;&nbsp; <sup>2</sup>Vijil &nbsp;&nbsp; <sup>*</sup>Equal contribution
+<sup>1</sup>University of Toronto &nbsp;&nbsp; <sup>2</sup>Vijil &nbsp;&nbsp; <sup>⋆</sup>Equal contribution
 
 </div>
 
