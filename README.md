@@ -5,7 +5,7 @@
 ### in Latent Audio Generative Models
 
 [![arXiv](https://img.shields.io/badge/arXiv-Preprint-b31b1b.svg)](docs/assets/AudioGAR.pdf)
-[![Project Page](https://img.shields.io/badge/Project-Page-3b6ea8.svg)](https://sunset-clouds.github.io/Audio-GAR/)
+[![Project Page](https://img.shields.io/badge/Project-Page-3b6ea8.svg)](https://ml-maple-monk.github.io/Audio-GAR/)
 [![Hugging Face](https://img.shields.io/badge/Hugging%20Face-Models-ffd21e.svg)](https://huggingface.co/overfittingexpert/Audio-GAR)
 
 **[Xianghong Fang](https://sunset-clouds.github.io/)<sup>1,⋆</sup> &middot; Geeyang Tay<sup>1,⋆</sup> &middot; Wentao Ma<sup>1</sup> &middot; Tim G. J. Rudner<sup>1,2</sup> &middot; Dehan Kong<sup>1</sup>**
@@ -92,6 +92,7 @@ Reference audio is not redistributed. Place the AudioCaps and MusicCaps test cli
 
 ## Getting Started
 
+
 ```bash
 # Fine-tuned decoder and eval cache from the Hub.
 uv run --no-sync --project audio_gar hf download overfittingexpert/Audio-GAR \
@@ -123,6 +124,9 @@ uv run --no-sync --project audio_gar python -m audio_gar.eval \
   --decoder_ckpt hub/audiox-maf/n0.2/decoder_100k.pt \
   --generation_cache hub/eval_cache/audiox-maf/musiccaps --cache_artifact_dir art \
   --data_root data --out_dir results/audiox-maf-musiccaps
+
+
+
 ```
 
 ## Citation
