@@ -92,7 +92,6 @@ Reference audio is not redistributed. Place the AudioCaps and MusicCaps test cli
 
 ## Getting Started
 
-
 ```bash
 # Fine-tuned decoder and eval cache from the Hub.
 uv run --no-sync --project audio_gar hf download overfittingexpert/Audio-GAR \
@@ -124,9 +123,6 @@ uv run --no-sync --project audio_gar python -m audio_gar.eval \
   --decoder_ckpt hub/audiox-maf/n0.2/decoder_100k.pt \
   --generation_cache hub/eval_cache/audiox-maf/musiccaps --cache_artifact_dir art \
   --data_root data --out_dir results/audiox-maf-musiccaps
-
-
-
 ```
 
 ## Citation
